@@ -1,4 +1,4 @@
-🗓️ Responsive Calendar UI
+Responsive Calendar UI
 
 A modern, interactive calendar dashboard designed for seamless planning, journaling, and productivity. This project combines smooth animations with a clean, distraction-free design to enhance your daily workflow.
 
