@@ -4,7 +4,7 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Variants } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useCalendar } from "@/hooks/useCalendar";
 import { useRangeSelection } from "@/hooks/useRangeSelection";
 import { getHeroImageSrcForMonth } from "@/lib/monthHero";
@@ -15,6 +15,21 @@ import { NotesPanel } from "./NotesPanel";
 
 const MONTH_NOTES_STORAGE = "wall-calendar:month-notes";
 const RANGE_NOTES_STORAGE = "wall-calendar:range-notes";
+
+const MONTH_QUOTES = [
+  "Every moment is a fresh beginning.",
+  "Where there is love there is life.",
+  "Spring adds new life and new beauty to all that is.",
+  "The earth laughs in flowers.",
+  "Keep your face always toward the sunshine—and shadows will fall behind you.",
+  "Live in the sunshine, swim the sea, drink the wild air.",
+  "Freedom lies in being bold.",
+  "Do what you can, with what you have, where you are.",
+  "And then the sun took a step back, the leaves lulled themselves to sleep, and autumn was awakened.",
+  "Life starts all over again when it gets crisp in the fall.",
+  "Gratitude turns what we have into enough.",
+  "Joy is what happens to us when we allow ourselves to recognize how good things really are."
+];
 
 function rangeKey(start: Date | null, end: Date | null): string {
   if (!start) {
@@ -32,9 +47,9 @@ function rangeLabel(start: Date | null, end: Date | null): string {
     return "";
   }
   if (!end || format(start, "yyyy-MM-dd") === format(end, "yyyy-MM-dd")) {
-    return format(start, "PPP");
+    return format(start, "MMMM do, yyyy");
   }
-  return `${format(start, "PPP")} - ${format(end, "PPP")}`;
+  return `${format(start, "MMMM do, yyyy")} - ${format(end, "MMMM do, yyyy")}`;
 }
 
 function Spiral() {
@@ -58,14 +73,46 @@ export function Calendar() {
     isInRange,
     isRangeStart,
     isRangeEnd,
+    clearRange,
   } = useRangeSelection();
 
   const heroSrc = useMemo(() => getHeroImageSrcForMonth(currentMonth), [currentMonth]);
   const heroAlt = `Seasonal illustration for ${format(currentMonth, "MMMM yyyy")}`;
+  const currentQuote = MONTH_QUOTES[currentMonth.getMonth()] || MONTH_QUOTES[0];
 
   // State management for notes
-  const [monthNote, setMonthNote] = useState("");
-  const [rangeNote, setRangeNote] = useState("");
+  const currentRangeKey = useMemo(() => rangeKey(range.start, range.end), [range.start, range.end]);
+  const [monthNotes, setMonthNotes] = useState<Record<string, string>>({});
+  const [rangeNotes, setRangeNotes] = useState<Record<string, string>>({});
+
+  // Load from storage on mount
+  useEffect(() => {
+    try {
+      const storedMonth = localStorage.getItem(MONTH_NOTES_STORAGE);
+      if (storedMonth) setMonthNotes(JSON.parse(storedMonth));
+      
+      const storedRange = localStorage.getItem(RANGE_NOTES_STORAGE);
+      if (storedRange) setRangeNotes(JSON.parse(storedRange));
+    } catch (e) {}
+  }, []);
+
+  // Clear date selection mathematically whenever the user pages to a new month panel
+  useEffect(() => {
+    clearRange();
+  }, [monthKey, clearRange]);
+
+  const handleMonthNoteChange = (value: string) => {
+    const updated = { ...monthNotes, [monthKey]: value };
+    setMonthNotes(updated);
+    localStorage.setItem(MONTH_NOTES_STORAGE, JSON.stringify(updated));
+  };
+
+  const handleRangeNoteChange = (value: string) => {
+    if (!currentRangeKey) return;
+    const updated = { ...rangeNotes, [currentRangeKey]: value };
+    setRangeNotes(updated);
+    localStorage.setItem(RANGE_NOTES_STORAGE, JSON.stringify(updated));
+  };
 
   return (
     <motion.main
@@ -77,44 +124,45 @@ export function Calendar() {
       <Spiral />
 
       {/* Hero Section */}
-      <div className="relative h-[24vh] min-h-[160px] max-h-[300px] w-full shrink-0 overflow-hidden">
-        <AnimatePresence mode="wait">
+      <div className="relative h-[24vh] min-h-[160px] max-h-[300px] w-full shrink-0 overflow-hidden" style={{ perspective: "1500px" }}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={monthKey}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
-            className="absolute inset-0"
+            initial={reducedMotion ? { opacity: 0 } : { rotateX: 90, opacity: 0, y: -20 }}
+            animate={reducedMotion ? { opacity: 1 } : { rotateX: 0, opacity: 1, y: 0 }}
+            exit={reducedMotion ? { opacity: 0 } : { rotateX: -90, opacity: 0, y: 20 }}
+            transition={{ duration: 0.6, type: "spring", stiffness: 100, damping: 20 }}
+            className="absolute inset-0 origin-top"
           >
             <Image
               src={heroSrc}
               alt={heroAlt}
               fill
-              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 1400px"
+              className="object-cover pointer-events-none"
               priority
             />
-            <div className="absolute inset-0 bg-black/10" />
+            <div className="absolute inset-0 bg-black/20" />
             
             {/* Quote / Overlay */}
-            <div className="absolute inset-x-0 bottom-6 sm:bottom-12 flex flex-col items-center px-6 text-center text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
-              <p className="max-w-3xl text-2xl font-serif font-black sm:text-4xl" style={{ textShadow: "1px 2px 4px rgba(0,0,0,0.5)" }}>
-                Every new day is another chance <br className="hidden sm:block" /> to change your life.
+            <div className="absolute inset-x-0 bottom-6 sm:bottom-12 flex flex-col items-center px-6 text-center text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+              <p className="max-w-3xl text-xl sm:text-3xl font-serif font-bold italic" style={{ textShadow: "1px 2px 4px rgba(0,0,0,0.5)" }}>
+                “{currentQuote}”
               </p>
             </div>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      <div className="flex flex-col-reverse xl:flex-row flex-1 p-4 md:p-8 gap-6 md:gap-10 bg-[#f4f5f6] rounded-b-2xl">
+      <div className="flex flex-col-reverse xl:flex-row flex-1 p-4 md:p-8 gap-6 md:gap-10 bg-[#f4f5f6] rounded-b-2xl w-full">
         {/* Sidebar: Notes */}
-        <div className="w-full xl:w-[320px] shrink-0 flex flex-col gap-6">
+        <div className="w-full xl:w-[360px] shrink-0 flex flex-col gap-6">
           <NotesPanel
-            monthNote={monthNote}
-            rangeNote={rangeNote}
-            rangeLabel={range.start ? format(range.start, "PPP") : ""}
-            onMonthNoteChange={setMonthNote}
-            onRangeNoteChange={setRangeNote}
+            monthNote={monthNotes[monthKey] || ""}
+            rangeNote={rangeNotes[currentRangeKey] || ""}
+            rangeLabel={rangeLabel(range.start, range.end)}
+            onMonthNoteChange={handleMonthNoteChange}
+            onRangeNoteChange={handleRangeNoteChange}
           />
         </div>
 
@@ -130,6 +178,7 @@ export function Calendar() {
               isInRange={isInRange}
               onDayClick={onDayClick}
               onHoverDay={setHoverDate}
+              notes={rangeNotes}
             />
           </div>
         </div>

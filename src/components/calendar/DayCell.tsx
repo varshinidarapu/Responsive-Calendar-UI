@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { motion, useReducedMotion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import type { CalendarDay } from "@/types/calendar";
+import { memo } from "react";
 
 /** Shared hover / focus glass treatment for date cells (non-selected default state). */
 const glassDateHover =
@@ -17,9 +18,32 @@ interface DayCellProps {
   onSelect: (date: Date) => void;
   onHover: (date: Date | null) => void;
   motionVariants: Variants;
+  note?: string;
 }
 
-export function DayCell({
+function parseNotePayload(noteRaw: string) {
+  let combined = noteRaw;
+  let display = noteRaw;
+  try {
+    const data = JSON.parse(noteRaw);
+    combined = (data.events || "") + " " + (data.reminders?.map((r:any) => r.text).join(" ") || "") + " " + (data.goals?.map((g:any) => g.text).join(" ") || "");
+    display = data.events || (data.reminders?.[0]?.text) || (data.goals?.[0]?.text) || "";
+  } catch(e) {}
+  return { combined, display };
+}
+
+function getNoteIcon(combinedText: string) {
+  const lower = combinedText.toLowerCase();
+  if (lower.includes("birthday") || lower.includes("cake") || lower.includes("🎂")) return "🎂";
+  if (lower.includes("meeting") || lower.includes("time") || lower.includes("call") || lower.includes("🕘")) return "🕘";
+  if (lower.includes("reminder") || lower.includes("critical") || lower.includes("urgent") || lower.includes("🚨")) return "🚨";
+  if (lower.includes("trip") || lower.includes("travel") || lower.includes("flight") || lower.includes("🧳")) return "🧳";
+  if (lower.includes("goal") || lower.includes("target") || lower.includes("🎯")) return "🎯";
+  if (lower.includes("traffic") || lower.includes("peak") || lower.includes("📈")) return "📈";
+  return "📌";
+}
+
+export const DayCell = memo(function DayCell({
   day,
   isStart,
   isEnd,
@@ -27,6 +51,7 @@ export function DayCell({
   onSelect,
   onHover,
   motionVariants,
+  note,
 }: DayCellProps) {
   const selectedEdge = isStart || isEnd;
   
@@ -64,8 +89,33 @@ export function DayCell({
     >
       <span className="absolute top-2 left-3 text-[13px]">{format(day.date, "d")}</span>
       {todayIndicator}
+      {(() => {
+        if (!note) return null;
+        const { combined, display } = parseNotePayload(note);
+        if (!display.trim()) return null;
+        
+        const icon = getNoteIcon(combined);
+        const hasEmojiInText = ["🎂", "🕘", "🚨", "🧳", "🎯", "📈", "📌"].some(e => display.includes(e));
+        
+        return (
+          <div className="absolute bottom-1.5 left-2 right-2 text-[9px] leading-tight text-left text-slate-700 truncate flex flex-col gap-[1px]">
+            {!hasEmojiInText && <span className="opacity-90 grayscale-[0.2] mb-[1px]">{icon}</span>}
+            <span className="truncate w-full font-semibold">{display}</span>
+          </div>
+        );
+      })()}
     </motion.button>
   );
-}
+}, (prev, next) => {
+  return (
+    prev.day.date.getTime() === next.day.date.getTime() &&
+    prev.day.inCurrentMonth === next.day.inCurrentMonth &&
+    prev.day.isToday === next.day.isToday &&
+    prev.isStart === next.isStart &&
+    prev.isEnd === next.isEnd &&
+    prev.isInRange === next.isInRange &&
+    prev.note === next.note
+  );
+});
 
 

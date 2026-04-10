@@ -5,6 +5,8 @@ import type { CalendarDay } from "@/types/calendar";
 import { dayCellVariants, gridMonthContainer } from "@/lib/motion";
 import { DayCell } from "./DayCell";
 
+import { format } from "date-fns";
+
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface GridProps {
@@ -15,6 +17,7 @@ interface GridProps {
   isInRange: (date: Date) => boolean;
   onDayClick: (date: Date) => void;
   onHoverDay: (date: Date | null) => void;
+  notes: Record<string, string>;
 }
 
 export function Grid({
@@ -25,6 +28,7 @@ export function Grid({
   isInRange,
   onDayClick,
   onHoverDay,
+  notes,
 }: GridProps) {
   const reducedMotion = useReducedMotion();
 
@@ -63,6 +67,7 @@ export function Grid({
               onSelect={onDayClick}
               onHover={onHoverDay}
               motionVariants={dayCellVariants(!!reducedMotion)}
+              note={notes[format(day.date, "yyyy-MM-dd")] || ""}
             />
           ))}
         </motion.div>

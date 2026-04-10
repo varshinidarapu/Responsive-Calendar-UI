@@ -20,20 +20,14 @@ body {
   color: #1e293b;
   font-family: var(--font-geist-sans);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 0;
 }
 
-@media (min-width: 768px) {
-  body {
-    padding: 2rem;
-  }
-}
-
 @layer utilities {
   .calendar-frame {
-    @apply relative flex w-full max-w-[1400px] min-h-[100dvh] md:min-h-[90vh] flex-col rounded-none md:rounded-b-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] bg-[#f4f5f6];
+    @apply relative flex w-full min-h-[100dvh] flex-col rounded-none shadow-none bg-[#f4f5f6];
   }
   
   .neu-panel {
