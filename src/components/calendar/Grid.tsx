@@ -1,13 +1,10 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import type { CalendarDay } from "@/types/calendar";
-import { dayCellVariants, gridMonthContainer } from "@/lib/motion";
-import { DayCell } from "./DayCell";
-
+import { motion } from "framer-motion";
 import { format } from "date-fns";
-
-const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+import type { CalendarDay } from "@/types/calendar";
+import { DayCell } from "./DayCell";
+import { gridContainer, dayCellSlide } from "@/lib/motion";
 
 interface GridProps {
   days: CalendarDay[];
@@ -17,8 +14,10 @@ interface GridProps {
   isInRange: (date: Date) => boolean;
   onDayClick: (date: Date) => void;
   onHoverDay: (date: Date | null) => void;
-  notes: Record<string, string>;
+  notes?: Record<string, string>;
 }
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function Grid({
   days,
@@ -28,50 +27,45 @@ export function Grid({
   isInRange,
   onDayClick,
   onHoverDay,
-  notes,
+  notes = {},
 }: GridProps) {
-  const reducedMotion = useReducedMotion();
-
   return (
-    <section aria-label="Monthly calendar">
-      <div className="mb-[6px] grid grid-cols-7 text-center text-[12px] font-semibold">
-        {WEEK_DAYS.map((day) => {
-          const isWeekend = day === "Sat" || day === "Sun";
-          return (
-            <div key={day} className="flex justify-center px-1">
-              {isWeekend ? (
-                <div className="bg-[#b6c2e8] text-[#3f4a7c] w-full rounded-[14px] py-[6px] shadow-sm font-semibold">{day}</div>
-              ) : (
-                <div className="text-[#475569] font-medium py-[6px]">{day}</div>
-              )}
-            </div>
-          );
-        })}
+    <div className="flex flex-col flex-1">
+      {/* Grid Header */}
+      <div className="grid grid-cols-7 mb-2 sm:mb-4">
+        {WEEKDAYS.map((day) => (
+          <div key={day} className="text-center text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 py-2">
+            <span className="hidden sm:inline">{day}</span>
+            <span className="sm:hidden">{day[0]}</span>
+          </div>
+        ))}
       </div>
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={monthKey}
-          variants={gridMonthContainer(!!reducedMotion)}
-          initial="hidden"
-          animate="show"
-          exit="exit"
-          className="grid grid-cols-7 gap-2 sm:gap-3 md:gap-4"
-        >
-          {days.map((day) => (
+
+      {/* Grid Content */}
+      <motion.div
+        key={monthKey}
+        variants={gridContainer}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-7 gap-1.5 sm:gap-4 flex-1"
+      >
+        {days.map((day, i) => {
+          const dateStr = format(day.date, "yyyy-MM-dd");
+          return (
             <DayCell
-              key={day.date.toISOString()}
+              key={dateStr + i}
               day={day}
               isStart={isRangeStart(day.date)}
               isEnd={isRangeEnd(day.date)}
               isInRange={isInRange(day.date)}
               onSelect={onDayClick}
               onHover={onHoverDay}
-              motionVariants={dayCellVariants(!!reducedMotion)}
-              note={notes[format(day.date, "yyyy-MM-dd")] || ""}
+              motionVariants={dayCellSlide}
+              note={notes[dateStr]}
             />
-          ))}
-        </motion.div>
-      </AnimatePresence>
-    </section>
+          );
+        })}
+      </motion.div>
+    </div>
   );
 }

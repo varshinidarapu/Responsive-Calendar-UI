@@ -2,25 +2,26 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
 
 interface NotesPanelProps {
+  viewMode?: "left" | "right" | "all";
   monthNote: string;
   rangeNote: string;
   rangeLabel: string;
+  isToday?: boolean;
   onMonthNoteChange: (value: string) => void;
   onRangeNoteChange: (value: string) => void;
 }
 
-type TabType = "Events" | "Reminders" | "Goals";
+type TabType = "Notes" | "Events" | "Goals";
 
 interface ParsedNote {
+  notes: string;
   events: string;
-  reminders: { text: string; time?: string; done: boolean }[];
   goals: { text: string; done: boolean }[];
 }
 
-const defaultNote: ParsedNote = { events: "", reminders: [], goals: [] };
+const defaultNote: ParsedNote = { notes: "", events: "", goals: [] };
 
 function parseData(raw: string): ParsedNote {
   if (!raw) return defaultNote;
@@ -28,35 +29,35 @@ function parseData(raw: string): ParsedNote {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object") {
       return {
+        notes: parsed.notes || "",
         events: parsed.events || "",
-        reminders: Array.isArray(parsed.reminders) ? parsed.reminders : [],
         goals: Array.isArray(parsed.goals) ? parsed.goals : [],
       };
     }
   } catch (e) {}
-  return { ...defaultNote, events: raw };
+  return { ...defaultNote, notes: raw };
 }
 
 export function NotesPanel({
+  viewMode = "all",
   monthNote,
   rangeNote,
   rangeLabel,
+  isToday,
   onMonthNoteChange,
   onRangeNoteChange,
 }: NotesPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("Events");
+  const [activeTab, setActiveTab] = useState<TabType>(
+    viewMode === "left" ? "Notes" : "Events"
+  );
   const [inputValue, setInputValue] = useState("");
-  const [inputTime, setInputTime] = useState("");
 
-  // Determine current active note based on whether a range is selected
   const isRange = !!rangeLabel;
   const currentRaw = isRange ? rangeNote : monthNote;
   const data = parseData(currentRaw);
 
-  // Edge case fix: Reset buffers when the user clicks a different date
   useEffect(() => {
     setInputValue("");
-    setInputTime("");
   }, [rangeLabel, monthNote]);
 
   const saveToParent = (newData: ParsedNote) => {
@@ -65,180 +66,155 @@ export function NotesPanel({
     else onMonthNoteChange(raw);
   };
 
+  const handleSaveNotes = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    saveToParent({ ...data, notes: e.target.value });
+  };
+
   const handleSaveEvents = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     saveToParent({ ...data, events: e.target.value });
   };
 
-  const appendEmoji = (emoji: string) => {
-    saveToParent({ ...data, events: data.events + emoji });
-  };
-
-  const handleAddListItem = (type: "reminders" | "goals") => {
+  const handleAddListItem = (type: "goals") => {
     if (!inputValue.trim()) return;
     const list = data[type];
-    const newItem: any = { text: inputValue.trim(), done: false };
-    if (type === "reminders" && inputTime) {
-      newItem.time = inputTime;
-    }
+    const newItem = { text: inputValue.trim(), done: false };
     saveToParent({ ...data, [type]: [...list, newItem] });
     setInputValue("");
-    setInputTime("");
   };
 
-  const toggleListItem = (type: "reminders" | "goals", index: number) => {
-    const list = [...data[type]];
-    list[index].done = !list[index].done;
+  const toggleListItem = (type: "goals", index: number) => {
+    const list = data[type].map((item, i) => 
+      i === index ? { ...item, done: !item.done } : item
+    );
     saveToParent({ ...data, [type]: list });
   };
 
-  const deleteListItem = (type: "reminders" | "goals", index: number) => {
-    const list = [...data[type]];
-    list.splice(index, 1);
+  const deleteListItem = (type: "goals", index: number) => {
+    const list = data[type].filter((_, i) => i !== index);
     saveToParent({ ...data, [type]: list });
   };
 
   return (
-    <div className="flex h-full flex-col gap-6 w-full">
-      {/* Plan Schedule Block */}
-      <div className="neu-panel bg-[#f4f5f6] px-5 py-6 flex flex-col rounded-3xl shrink-0">
-        <h3 className="text-[14px] font-semibold text-[#334155] mb-5 pl-1 tracking-wide">
-          PLAN SCHEDULE
+    <div className="flex h-full flex-col gap-6 w-full max-h-full overflow-hidden">
+      <div className="neu-panel px-6 py-5 flex flex-col rounded-[2rem] shrink-0 border border-white/5">
+        <h3 className="text-[11px] font-bold text-muted uppercase tracking-[0.2em] mb-4">
+           {viewMode === "left" ? "Navigation" : "Plan Schedule"}
         </h3>
         
-        <div className="flex w-full justify-between items-center px-1">
-          <button 
-            type="button"
-            onClick={() => setActiveTab("Events")}
-            className={`flex flex-col items-center gap-1 group transition-opacity ${activeTab !== "Events" ? "opacity-60 hover:opacity-100" : ""}`}
-          >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${activeTab === "Events" ? "neu-panel bg-white shadow-[2px_2px_5px_rgba(0,0,0,0.05),-2px_-2px_5px_rgba(255,255,255,1)] text-slate-800 scale-105" : "text-slate-600"}`}>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <span className={`text-[10px] font-semibold mt-1 ${activeTab === "Events" ? "text-slate-700" : "text-slate-500"}`}>Events</span>
-          </button>
-          
-          <button 
-            type="button"
-            onClick={() => setActiveTab("Reminders")}
-            className={`flex flex-col items-center gap-1 group transition-opacity ${activeTab !== "Reminders" ? "opacity-60 hover:opacity-100" : ""}`}
-          >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${activeTab === "Reminders" ? "neu-panel bg-white shadow-[2px_2px_5px_rgba(0,0,0,0.05),-2px_-2px_5px_rgba(255,255,255,1)] text-slate-800 scale-105" : "text-slate-600"}`}>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </div>
-            <span className={`text-[10px] font-semibold mt-1 ${activeTab === "Reminders" ? "text-slate-700" : "text-slate-500"}`}>Reminders</span>
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => setActiveTab("Goals")}
-            className={`flex flex-col items-center gap-1 group transition-opacity ${activeTab !== "Goals" ? "opacity-60 hover:opacity-100" : ""}`}
-          >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${activeTab === "Goals" ? "neu-panel bg-white shadow-[2px_2px_5px_rgba(0,0,0,0.05),-2px_-2px_5px_rgba(255,255,255,1)] text-slate-800 scale-105" : "text-slate-600"}`}>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v8l9-11h-7z" />
-              </svg>
-            </div>
-            <span className={`text-[10px] font-semibold mt-1 ${activeTab === "Goals" ? "text-slate-700" : "text-slate-500"}`}>Goals</span>
-          </button>
+        <div className="flex w-full gap-4 items-center">
+          {viewMode === "left" ? (
+             <div className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 neu-pressed text-accent bg-accent/5 font-bold">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className="text-xs uppercase tracking-wider">My Journal</span>
+             </div>
+          ) : (
+            <>
+              <button 
+                type="button"
+                onClick={() => setActiveTab("Events")}
+                className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === "Events" ? "neu-pressed text-accent bg-accent/5 font-bold" : "text-muted hover:text-foreground"}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor font-bold">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs uppercase tracking-wider">Events</span>
+              </button>
+    
+              <button 
+                type="button"
+                onClick={() => setActiveTab("Goals")}
+                className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${activeTab === "Goals" ? "neu-pressed text-accent bg-accent/5 font-bold" : "text-muted hover:text-foreground"}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="text-xs uppercase tracking-wider">Goals</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="neu-panel bg-[#f4f5f6] flex-1 flex flex-col px-6 py-5 rounded-3xl min-h-[220px]">
-        <div className="flex justify-between items-center mb-3 border-b border-gray-200/60 pb-3">
-          <h3 className="text-[13px] font-bold text-slate-700 tracking-wider uppercase">
-            {isRange && rangeLabel ? `${activeTab} (${rangeLabel})` : `${activeTab} (Month)`}
-          </h3>
+      <div className="neu-panel flex-1 flex flex-col px-7 py-6 rounded-[2.5rem] min-h-[250px] border border-white/5 relative overflow-hidden">
+        <div className="flex justify-between items-center mb-5 shrink-0">
+          <h2 className="text-base font-bold text-foreground tracking-tight">
+             {viewMode === "left" ? "Day Notes" : activeTab}
+          </h2>
+          {isToday && (
+             <span className="text-[9px] font-black py-0.5 px-2 rounded-full bg-accent text-white uppercase tracking-tighter shadow-md">Today</span>
+          )}
         </div>
         
-        <div className="flex-1 relative flex flex-col">
-          {activeTab === "Events" && (
-            <>
-              <div className="flex gap-2 mb-2 pb-2 border-b border-gray-200/50 overflow-x-auto custom-scrollbar">
-                {["🎂", "🕘", "🚨", "🧳", "🎯", "📈"].map(emoji => (
-                  <button key={emoji} onClick={() => appendEmoji(emoji)} className="shrink-0 w-8 h-8 rounded bg-white shadow-sm cursor-pointer hover:scale-110 active:scale-95 transition-transform flex items-center justify-center">
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-              <div className="flex-1 relative">
-                <textarea
-                  value={data.events}
-                  onChange={handleSaveEvents}
-                  placeholder="Type an event here..."
-                  className="w-full h-full resize-none bg-transparent outline-none text-slate-700 leading-relaxed pt-1 z-10 relative font-medium text-[13px]"
-                  spellCheck={false}
-                />
-              </div>
-            </>
-          )}
-
-          {(activeTab === "Reminders" || activeTab === "Goals") && (
-            <div className="flex flex-col gap-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1 pt-1">
-              {data[activeTab.toLowerCase() as "reminders" | "goals"].map((item, i) => (
-                <div key={i} className="flex flex-row items-center gap-2 group py-1.5 px-2 rounded-lg hover:bg-slate-200/50 transition-colors">
-                  <button onClick={() => toggleListItem(activeTab.toLowerCase() as "reminders"|"goals", i)} className={`shrink-0 w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${item.done ? "bg-slate-800 border-slate-800 text-white" : "border-slate-400 text-transparent hover:border-slate-600"}`}>
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                  </button>
-                  {activeTab === "Reminders" && !item.done && <span className="text-[11px] shrink-0">🚨</span>}
-                  <div className="flex-1 flex flex-col justify-center min-w-0">
-                    <span className={`text-[13px] truncate ${item.done ? "line-through text-slate-400" : "text-slate-700 font-medium"}`}>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {viewMode === "left" ? (
+            <textarea
+              value={data.notes}
+              onChange={handleSaveNotes}
+              placeholder="Write your thoughts..."
+              className="w-full h-full resize-none bg-transparent outline-none text-foreground leading-relaxed font-serif text-base custom-scrollbar italic placeholder:text-muted/40"
+              spellCheck={false}
+            />
+          ) : activeTab === "Events" ? (
+            <textarea
+              value={data.events}
+              onChange={handleSaveEvents}
+              placeholder="List events..."
+              className="w-full h-full resize-none bg-transparent outline-none text-foreground leading-relaxed font-medium text-xs custom-scrollbar placeholder:text-muted/40"
+              spellCheck={false}
+            />
+          ) : (
+            <div className="flex flex-col gap-2 flex-1 overflow-y-auto custom-scrollbar pr-1 pt-1">
+              {data.goals.map((item, i) => (
+                <div 
+                  key={i} 
+                  className={`flex flex-row items-center gap-3 group py-3 px-4 rounded-2xl transition-all cursor-pointer border ${item.done ? "bg-accent/5 border-accent/20" : "bg-white/5 border-white/5 hover:bg-white/10"}`}
+                  onClick={() => toggleListItem("goals", i)}
+                >
+                  <div className={`shrink-0 w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${item.done ? "bg-accent border-accent text-white" : "border-muted/40 text-transparent"}`}>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <span className={`text-[13px] truncate ${item.done ? "line-through text-muted/50" : "text-foreground font-semibold"}`}>
                       {item.text}
                     </span>
-                    {activeTab === "Reminders" && item.time && (
-                      <span className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5 font-semibold">
-                        <svg className="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        {item.time}
+                    {item.done && (
+                      <span className="text-[8px] font-black uppercase tracking-widest text-accent mt-0.5">
+                        Task Finished
                       </span>
                     )}
                   </div>
-                  <button onClick={() => deleteListItem(activeTab.toLowerCase() as "reminders"|"goals", i)} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-colors">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); deleteListItem("goals", i); }} 
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                   </button>
                 </div>
               ))}
               
-              {data[activeTab.toLowerCase() as "reminders"| "goals"].length === 0 && (
-                <div className="flex justify-center text-slate-400 text-xs italic mt-2 opacity-70">No {activeTab.toLowerCase()} set.</div>
-              )}
-
-              <div className="flex flex-col gap-2 mt-auto pt-4 pb-1">
-                <div className="flex gap-2">
+              <div className="mt-auto pt-4 border-t border-white/5">
+                <div className="relative group">
                   <input
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddListItem(activeTab.toLowerCase() as "reminders"|"goals")}
-                    placeholder={`New ${activeTab.slice(0, -1)}...`}
-                    className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-blue-100 font-medium text-slate-700 shadow-sm"
+                    onKeyDown={(e) => e.key === "Enter" && handleAddListItem("goals")}
+                    placeholder="New goal..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-accent/30 font-medium text-foreground transition-all"
                   />
+                   <button 
+                      onClick={() => handleAddListItem("goals")}
+                      className="absolute right-1 top-1 h-6 px-3 bg-accent text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg active:scale-95 transition-all"
+                    >
+                    Save
+                  </button>
                 </div>
-                {activeTab === "Reminders" && (
-                  <div className="flex justify-between items-center px-1">
-                    <div className="flex items-center gap-1.5 text-slate-500 text-[12px] bg-white rounded-md px-2 py-1 shadow-sm border border-slate-200">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      <input 
-                        type="time" 
-                        value={inputTime}
-                        onChange={(e) => setInputTime(e.target.value)}
-                        className="bg-transparent border-none outline-none text-slate-600 font-medium cursor-pointer"
-                      />
-                    </div>
-                    <button onClick={() => handleAddListItem(activeTab.toLowerCase() as "reminders"|"goals")} className="px-4 py-1.5 bg-slate-800 text-white rounded-md text-[11px] font-bold tracking-wider hover:bg-slate-700 shadow-md active:scale-95 transition-all">
-                      ADD
-                    </button>
-                  </div>
-                )}
-                {activeTab === "Goals" && (
-                  <div className="flex justify-end px-1 mt-1">
-                     <button onClick={() => handleAddListItem(activeTab.toLowerCase() as "reminders"|"goals")} className="px-4 py-1.5 bg-slate-800 text-white rounded-md text-[11px] font-bold tracking-wider hover:bg-slate-700 shadow-md active:scale-95 transition-all">
-                      ADD
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -247,5 +223,3 @@ export function NotesPanel({
     </div>
   );
 }
-
-

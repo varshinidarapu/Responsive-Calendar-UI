@@ -1,45 +1,89 @@
 @import "tailwindcss";
 
 :root {
-  --background: #d1d5db;
+  --background: #e6e4dc;
   --foreground: #1e293b;
-  --paper: #ffffff;
+  --card: #f4f5f6;
+  --card-foreground: #334155;
+  --border: rgba(203, 213, 225, 0.5);
+  --ring: #94a3b8;
+  --accent: #475569;
+  --accent-foreground: #ffffff;
+  --muted: #64748b;
+  --muted-foreground: #94a3b8;
+  --shadow-light: #ffffff;
+  --shadow-dark: #e2e4e8;
+  --spiral-gradient: linear-gradient(to bottom, #a0a0a0, #e8e8e8, #707070);
+}
+
+.dark {
+  --background: #080a12;
+  --foreground: #f8fafc;
+  --card: #111827;
+  --card-foreground: #e2e8f0;
+  --border: rgba(30, 41, 59, 1);
+  --ring: #1e293b;
+  --accent: #f97316; /* Professional orange accent from ref */
+  --accent-foreground: #ffffff;
+  --muted: #94a3b8;
+  --muted-foreground: #475569;
+  --shadow-light: #1e293b;
+  --shadow-dark: #020617;
+  --spiral-gradient: linear-gradient(to bottom, #2d3748, #4a5568, #1a202c);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 }
 
 body {
   min-height: 100dvh;
   margin: 0;
-  background-color: #e6e4dc; /* Wall background */
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
-  color: #1e293b;
+  background-color: var(--background);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+  color: var(--foreground);
   font-family: var(--font-geist-sans);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 0;
+  padding: 1.5rem;
+  transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @layer utilities {
   .calendar-frame {
-    @apply relative flex w-full min-h-[100dvh] flex-col rounded-none shadow-none bg-[#f4f5f6];
+    @apply relative flex w-full max-w-[1600px] min-h-[85vh] flex-col rounded-[2.5rem] shadow-2xl bg-card overflow-hidden border border-white/10;
+    transition: background-color 0.5s ease;
   }
   
   .neu-panel {
-    @apply bg-[#f4f5f6] rounded-2xl shadow-[6px_6px_12px_#e2e4e8,-6px_-6px_12px_#ffffff];
+    @apply bg-card rounded-2xl shadow-[6px_6px_12px_var(--shadow-dark),-6px_-6px_12px_var(--shadow-light)];
+    transition: all 0.3s ease;
+  }
+
+  .dark .neu-panel {
+    @apply shadow-[4px_4px_10px_rgba(0,0,0,0.5),-1px_-1px_0px_rgba(255,255,255,0.05)];
   }
   
   .neu-pressed {
-    @apply bg-[#f4f5f6] rounded-xl shadow-[inset_4px_4px_8px_#e2e4e8,inset_-4px_-4px_8px_#ffffff] border border-transparent;
+    @apply bg-card rounded-xl shadow-[inset_4px_4px_8px_var(--shadow-dark),inset_-4px_-4px_8px_var(--shadow-light)] border border-transparent;
+  }
+
+  .dark .neu-pressed {
+    @apply shadow-[inset_4px_4px_8px_rgba(0,0,0,0.6),inset_-1px_-1px_2px_rgba(255,255,255,0.05)];
   }
   
   .spiral-ring {
-    @apply h-8 w-2 rounded-full bg-gradient-to-b from-[#a0a0a0] via-[#e8e8e8] to-[#707070] shadow-[0_4px_4px_rgba(0,0,0,0.4),inset_1px_0_2px_rgba(255,255,255,0.8),inset_-1px_0_2px_rgba(0,0,0,0.4)];
+    @apply h-10 w-2.5 rounded-full bg-gradient-to-b from-slate-400 via-slate-100 to-slate-600 shadow-[0_4px_6px_rgba(0,0,0,0.5),inset_1px_0_2px_rgba(255,255,255,0.8),inset_-1px_0_2px_rgba(0,0,0,0.4)];
+  }
+
+  .dark .spiral-ring {
+    @apply from-slate-700 via-slate-500 to-slate-900;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -50,10 +94,9 @@ body {
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+    @apply bg-slate-400/20 rounded-full hover:bg-slate-400/40 transition-colors;
   }
 }
-
 
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
@@ -62,6 +105,3 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
-
-
-

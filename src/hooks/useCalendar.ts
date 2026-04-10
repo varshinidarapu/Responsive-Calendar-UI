@@ -27,8 +27,10 @@ export function useCalendar(initialDate: Date = new Date()) {
     while (cursor <= calendarEnd) {
       result.push({
         date: new Date(cursor),
-        inCurrentMonth: cursor.getMonth() === currentMonth.getMonth(),
-        isToday: isSameDay(cursor, new Date()),
+        inCurrentMonth: 
+          cursor.getMonth() === currentMonth.getMonth() && 
+          cursor.getFullYear() === currentMonth.getFullYear(),
+        isToday: false, // Initialized to false to prevent hydration mismatch
         isWeekend: isWeekend(cursor),
       });
       cursor.setDate(cursor.getDate() + 1);
@@ -44,5 +46,6 @@ export function useCalendar(initialDate: Date = new Date()) {
     monthKey: format(currentMonth, "yyyy-MM"),
     previousMonth: () => setCurrentMonth((value) => addMonths(value, -1)),
     nextMonth: () => setCurrentMonth((value) => addMonths(value, 1)),
+    goToToday: () => setCurrentMonth(startOfMonth(new Date())),
   };
 }
