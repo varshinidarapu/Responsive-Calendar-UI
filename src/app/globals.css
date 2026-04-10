@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #d1d5db;
+  --foreground: #1e293b;
+  --paper: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-paper: var(--paper);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+  margin: 0;
+  background-color: #e6e4dc; /* Wall background */
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+  color: #1e293b;
+  font-family: var(--font-geist-sans);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
+
+@media (min-width: 768px) {
+  body {
+    padding: 2rem;
+  }
+}
+
+@layer utilities {
+  .calendar-frame {
+    @apply relative flex w-full max-w-[1400px] min-h-[100dvh] md:min-h-[90vh] flex-col rounded-none md:rounded-b-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] bg-[#f4f5f6];
+  }
+  
+  .neu-panel {
+    @apply bg-[#f4f5f6] rounded-2xl shadow-[6px_6px_12px_#e2e4e8,-6px_-6px_12px_#ffffff];
+  }
+  
+  .neu-pressed {
+    @apply bg-[#f4f5f6] rounded-xl shadow-[inset_4px_4px_8px_#e2e4e8,inset_-4px_-4px_8px_#ffffff] border border-transparent;
+  }
+  
+  .spiral-ring {
+    @apply h-8 w-2 rounded-full bg-gradient-to-b from-[#a0a0a0] via-[#e8e8e8] to-[#707070] shadow-[0_4px_4px_rgba(0,0,0,0.4),inset_1px_0_2px_rgba(255,255,255,0.8),inset_-1px_0_2px_rgba(0,0,0,0.4)];
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+
