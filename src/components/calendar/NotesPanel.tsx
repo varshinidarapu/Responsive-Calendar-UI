@@ -139,9 +139,16 @@ export function NotesPanel({
 
       <div className="neu-panel flex-1 flex flex-col px-7 py-6 rounded-[2.5rem] min-h-[250px] border border-white/5 relative overflow-hidden">
         <div className="flex justify-between items-center mb-5 shrink-0">
-          <h2 className="text-base font-bold text-foreground tracking-tight">
-             {viewMode === "left" ? "Day Notes" : activeTab}
-          </h2>
+          <div className="flex flex-col gap-0.5 max-w-[70%]">
+            <h2 className="text-base font-bold text-foreground tracking-tight">
+               {viewMode === "left" ? "Day Notes" : activeTab}
+            </h2>
+            {isRange && (
+              <span className="text-[10px] sm:text-xs font-semibold text-accent opacity-90 truncate">
+                {rangeLabel}
+              </span>
+            )}
+          </div>
           {isToday && (
              <span className="text-[9px] font-black py-0.5 px-2 rounded-full bg-accent text-white uppercase tracking-tighter shadow-md">Today</span>
           )}

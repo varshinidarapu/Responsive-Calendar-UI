@@ -9,28 +9,46 @@ export function useRangeSelection() {
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
 
   const previewRange = useMemo<DateRange>(() => {
-    return range; // Ignore hover range previews
-  }, [range]);
+    if (range.start && !range.end && hoverDate) {
+      if (isBefore(hoverDate, range.start)) {
+        return { start: hoverDate, end: range.start };
+      }
+      return { start: range.start, end: hoverDate };
+    }
+    return range;
+  }, [range, hoverDate]);
 
   const onDayClick = useCallback((date: Date) => {
     setRange((prev) => {
       // Toggle off if clicking the exact already selected date
-      if (prev.start && isSameDay(date, prev.start)) {
+      if (prev.start && isSameDay(date, prev.start) && !prev.end) {
         return { start: null, end: null };
       }
 
-      // Always select exactly one isolated day
-      return { start: date, end: date };
+      // If we don't have a start, or we already have both, start a new range
+      if (!prev.start || (prev.start && prev.end)) {
+        return { start: date, end: null };
+      }
+
+      // We have a start but no end.
+      if (isBefore(date, prev.start)) {
+        return { start: date, end: prev.start };
+      }
+      return { start: prev.start, end: date };
     });
   }, []);
 
   const isRangeStart = (date: Date) =>
-    Boolean(range.start && isSameDay(range.start, date));
+    Boolean(previewRange.start && isSameDay(previewRange.start, date));
   const isRangeEnd = (date: Date) =>
-    Boolean(range.start && isSameDay(range.start, date));
+    Boolean(previewRange.end && isSameDay(previewRange.end, date));
 
   const isInRange = (date: Date) => {
-    return isRangeStart(date);
+    if (!previewRange.start || !previewRange.end) return false;
+    return (
+      (isAfter(date, previewRange.start) || isSameDay(date, previewRange.start)) &&
+      (isBefore(date, previewRange.end) || isSameDay(date, previewRange.end))
+    );
   };
 
   const clearRange = useCallback(() => {

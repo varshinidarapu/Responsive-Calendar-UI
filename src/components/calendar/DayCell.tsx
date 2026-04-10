@@ -70,12 +70,13 @@ export const DayCell = memo(({
 
   const stateClasses = (() => {
     if (selectedEdge) {
-      return "text-white bg-accent border-accent shadow-xl shadow-accent/20 font-black scale-[1.05] z-10";
+      const roundedClass = isStart && isEnd ? "rounded-2xl" : isStart ? "rounded-r-none rounded-l-2xl" : "rounded-l-none rounded-r-2xl";
+      return `text-white bg-accent border-accent shadow-xl shadow-accent/20 font-black scale-[1.02] z-10 ${roundedClass}`;
     }
     if (isInRange) {
-      return "text-accent bg-accent/10 border-accent/40";
+      return "text-accent bg-accent/15 border-y-accent/30 border-x-transparent rounded-none px-0";
     }
-    return neumoClasses;
+    return `${neumoClasses} rounded-2xl`;
   })();
 
   const isActuallyToday = isMounted && isSameDay(day.date, new Date());
@@ -86,7 +87,7 @@ export const DayCell = memo(({
       onClick={() => onSelect(day.date)}
       onMouseEnter={() => onHover(day.date)}
       onMouseLeave={() => onHover(null)}
-      className={`relative flex flex-col p-2 sm:p-2.5 transition-all min-h-[3.2rem] sm:min-h-[4rem] rounded-xl sm:rounded-2xl border ${textClasses} ${stateClasses} group overflow-hidden`}
+      className={`relative flex flex-col p-2 sm:p-2.5 transition-all min-h-[3.2rem] sm:min-h-[4rem] border ${textClasses} ${stateClasses} group overflow-hidden`}
       aria-label={format(day.date, "EEEE, MMMM d, yyyy")}
     >
       <span className="absolute top-1.5 left-2 sm:top-3 sm:left-4 text-xs sm:text-sm">{format(day.date, "d")}</span>
